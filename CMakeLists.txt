@@ -1,37 +1,42 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.30)
 project(vulkan_tools)
 
 set(CMAKE_CXX_STANDARD 23)
 
 
 find_package(Vulkan REQUIRED)
-find_package(PkgConfig REQUIRED)
 
-# Create an imported target from pkg-config
-pkg_check_modules(GLFW3 REQUIRED IMPORTED_TARGET glfw3)
+# Platform-specific GLFW setup
+if(WIN32)
+    # Option A: Use find_package if GLFW was installed via vcpkg
+    find_package(glfw3 CONFIG REQUIRED)
+elseif(APPLE)
+    # macOS: Use pkg-config as before
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GLFW3 REQUIRED IMPORTED_TARGET glfw3)
+    set(GLFW_LIBRARY PkgConfig::GLFW3)
+endif()
 
-add_executable(vulkan_tools main.cpp
-        SimpleTriangleApp.cpp)
-
-# Headers
-target_include_directories(vulkan_tools PRIVATE
-        ${Vulkan_INCLUDE_DIRS}
-        ${GLFW3_INCLUDE_DIRS}        # -> /opt/homebrew/Cellar/glfw/3.4/include
-)
-
-# Very important: add the library search path so -lglfw is found
-target_link_directories(vulkan_tools PRIVATE
-        ${GLFW3_LIBRARY_DIRS}        # -> /opt/homebrew/Cellar/glfw/3.4/lib
-)
+add_executable(vulkan_tools main.cpp SimpleTriangleApp.cpp)
 
 # Link GLFW based on platform
 if(WIN32)
     target_link_libraries(vulkan_tools
-            ${Vulkan_LIBRARIES}
-            ${GLFW3_LIBRARIES}
-            vulkan-1  # Vulkan library on Windows
+            Vulkan::Vulkan
+            glfw
     )
 elseif(APPLE)
+    # Headers
+    target_include_directories(vulkan_tools PRIVATE
+            ${Vulkan_INCLUDE_DIRS}
+            ${GLFW3_INCLUDE_DIRS}        # -> /opt/homebrew/Cellar/glfw/3.4/include
+    )
+
+    # Very important: add the library search path so -lglfw is found
+    target_link_directories(vulkan_tools PRIVATE
+            ${GLFW3_LIBRARY_DIRS}        # -> /opt/homebrew/Cellar/glfw/3.4/lib
+    )
+
     # Link libs
     target_link_libraries(vulkan_tools PRIVATE
             ${Vulkan_LIBRARIES}

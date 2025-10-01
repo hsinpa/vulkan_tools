@@ -1,1 +1,4 @@
 cmake-build-debug
+CMakeFiles
+vulkan_tools.dir
+.idea
